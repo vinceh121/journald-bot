@@ -95,7 +95,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 
 	private String makeText(final MatchCriteria c, final JournalEntry e) {
 		final StringBuilder sb = new StringBuilder();
-		sb.append("Match\n");
+		sb.append("Match\n\n");
 
 		sb.append("Field: `");
 		sb.append(c.getField());
@@ -118,7 +118,6 @@ public class JournaldBot extends TelegramLongPollingBot {
 
 	@Override
 	public void onUpdateReceived(final Update update) {
-		System.out.println(update);
 	}
 
 	@Override
