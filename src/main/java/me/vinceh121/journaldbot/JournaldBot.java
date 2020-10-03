@@ -29,7 +29,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 	private final Date start = new Date();
 	private final Config config;
 
-	public static void main(String[] args) throws JsonParseException, JsonMappingException, IOException {
+	public static void main(final String[] args) throws JsonParseException, JsonMappingException, IOException {
 		final Config config = new ObjectMapper()
 				.readValue(args.length == 0 ? new File("./config.json") : new File(args[0]), Config.class);
 
@@ -37,7 +37,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 		final TelegramBotsApi api = new TelegramBotsApi();
 		try {
 			api.registerBot(new JournaldBot(config));
-		} catch (TelegramApiRequestException e) {
+		} catch (final TelegramApiRequestException e) {
 			e.printStackTrace();
 		}
 	}
@@ -48,7 +48,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 		new Thread(() -> {
 			try {
 				this.start();
-			} catch (IOException e) {
+			} catch (final IOException e) {
 				e.printStackTrace();
 			}
 		}, "JournalListener").start();
@@ -61,7 +61,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 		final InputStream in = con.getInputStream();
 		final JsonParser parse = new JsonParser(in, Charset.defaultCharset(), this.mapper);
 		parse.forEachRemaining(e -> {
-			if (start.before(e.getRealTimestamp())) { // ignore the entries before we started
+			if (this.start.before(e.getRealTimestamp())) { // ignore the entries before we started
 				this.processEntry(e);
 			}
 		});
@@ -88,7 +88,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 		msg.setChatId(this.config.getChatId());
 		try {
 			this.execute(msg);
-		} catch (TelegramApiException e1) {
+		} catch (final TelegramApiException e1) {
 			e1.printStackTrace();
 		}
 	}

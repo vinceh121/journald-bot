@@ -45,12 +45,14 @@ public class JsonParser extends LineParser {
 	}
 
 	private boolean isByteEncoded(final JsonNode node) {
-		if (!node.isArray())
+		if (!node.isArray()) {
 			return false;
+		}
 
 		for (int i = 0; i < node.size(); i++) {
-			if (!node.get(i).isNumber())
+			if (!node.get(i).isNumber()) {
 				return false;
+			}
 		}
 		return true;
 	}

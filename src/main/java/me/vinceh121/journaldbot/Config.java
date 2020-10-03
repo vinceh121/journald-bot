@@ -8,34 +8,34 @@ public class Config {
 	private String token, username;
 
 	public List<MatchCriteria> getCriterias() {
-		return criterias;
+		return this.criterias;
 	}
 
-	public void setCriterias(List<MatchCriteria> criterias) {
+	public void setCriterias(final List<MatchCriteria> criterias) {
 		this.criterias = criterias;
 	}
 
 	public long getChatId() {
-		return chatId;
+		return this.chatId;
 	}
 
-	public void setChatId(long chatId) {
+	public void setChatId(final long chatId) {
 		this.chatId = chatId;
 	}
 
 	public String getToken() {
-		return token;
+		return this.token;
 	}
 
-	public void setToken(String token) {
+	public void setToken(final String token) {
 		this.token = token;
 	}
 
 	public String getUsername() {
-		return username;
+		return this.username;
 	}
 
-	public void setUsername(String username) {
+	public void setUsername(final String username) {
 		this.username = username;
 	}
 

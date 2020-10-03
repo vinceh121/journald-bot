@@ -32,7 +32,7 @@ public class JournalEntry extends HashMap<String, Object> {
 	}
 
 	public Date getSourceTimestamp() {
-		return new Date(((long) this.get("_SOURCE_REALTIME_TIMESTAMP")) / 1000);
+		return new Date((long) this.get("_SOURCE_REALTIME_TIMESTAMP") / 1000);
 	}
 
 	public void setSourceTimestamp(final Date date) {
@@ -40,7 +40,7 @@ public class JournalEntry extends HashMap<String, Object> {
 	}
 
 	public Date getRealTimestamp() {
-		return new Date((Long.parseLong((String) this.get("__REALTIME_TIMESTAMP"))) / 1000);
+		return new Date(Long.parseLong((String) this.get("__REALTIME_TIMESTAMP")) / 1000);
 	}
 
 	public void setRealTimestamp(final Date date) {
