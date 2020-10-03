@@ -55,7 +55,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 	}
 
 	private void start() throws IOException {
-		final URL url = new URL("http://127.0.0.1:19531/entries?follow&boot");
+		final URL url = new URL(config.getUrl());
 		final HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.addRequestProperty("Accept", "application/json");
 		final InputStream in = con.getInputStream();

@@ -5,7 +5,7 @@ import java.util.List;
 public class Config {
 	private List<MatchCriteria> criterias;
 	private long chatId;
-	private String token, username;
+	private String token, username, url;
 
 	public List<MatchCriteria> getCriterias() {
 		return this.criterias;
@@ -37,6 +37,14 @@ public class Config {
 
 	public void setUsername(final String username) {
 		this.username = username;
+	}
+
+	public String getUrl() {
+		return url;
+	}
+
+	public void setUrl(String url) {
+		this.url = url;
 	}
 
 }
