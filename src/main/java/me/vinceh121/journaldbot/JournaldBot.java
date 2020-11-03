@@ -69,11 +69,19 @@ public class JournaldBot extends TelegramLongPollingBot {
 	}
 
 	private void processEntry(final JournalEntry e) {
-		for (final MatchCriteria c : this.config.getCriterias()) {
+		for (final MatchGroup c : this.config.getCriterias()) {
 			if (this.matches(c, e)) {
 				this.sendEntry(c, e);
 			}
 		}
+	}
+
+	private boolean matches(final MatchGroup gp, final JournalEntry entry) {
+		for (final MatchCriteria crit : gp) {
+			if (!this.matches(crit, entry))
+				return false;
+		}
+		return true;
 	}
 
 	private boolean matches(final MatchCriteria crit, final JournalEntry entry) {
@@ -81,10 +89,10 @@ public class JournaldBot extends TelegramLongPollingBot {
 		return Pattern.matches(crit.getRegex(), value);
 	}
 
-	private void sendEntry(final MatchCriteria c, final JournalEntry e) {
+	private void sendEntry(final MatchGroup g, final JournalEntry e) {
 		final SendMessage msg = new SendMessage();
 		msg.enableMarkdownV2(true);
-		msg.setText(this.makeText(c, e));
+		msg.setText(this.makeText(g, e));
 		msg.setChatId(this.config.getChatId());
 		try {
 			this.execute(msg);
@@ -93,25 +101,27 @@ public class JournaldBot extends TelegramLongPollingBot {
 		}
 	}
 
-	private String makeText(final MatchCriteria c, final JournalEntry e) {
+	private String makeText(final MatchGroup g, final JournalEntry e) {
 		final StringBuilder sb = new StringBuilder();
 		sb.append("Match\n\n");
 
-		sb.append("Field: `");
-		sb.append(c.getField());
-		sb.append("`\n");
+		for (final MatchCriteria c : g) {
+			sb.append("Field: `");
+			sb.append(c.getField());
+			sb.append("`\n");
 
-		sb.append("Field value: `");
-		sb.append(e.get(c.getField()));
-		sb.append("`\n");
+			sb.append("Field value: `");
+			sb.append(e.get(c.getField()));
+			sb.append("`\n");
 
-		sb.append("Regex: `");
-		sb.append(c.getRegex());
-		sb.append("`\n");
+			sb.append("Regex: `");
+			sb.append(c.getRegex());
+			sb.append("`\n");
 
-		sb.append("Message: `");
-		sb.append(e.getMessage());
-		sb.append("`\n");
+			sb.append("Message: `");
+			sb.append(e.getMessage());
+			sb.append("`\n\n--------\n\n");
+		}
 
 		return sb.toString();
 	}

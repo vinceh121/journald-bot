@@ -3,15 +3,15 @@ package me.vinceh121.journaldbot;
 import java.util.List;
 
 public class Config {
-	private List<MatchCriteria> criterias;
+	private List<MatchGroup> criterias;
 	private long chatId;
 	private String token, username, url;
 
-	public List<MatchCriteria> getCriterias() {
+	public List<MatchGroup> getCriterias() {
 		return this.criterias;
 	}
 
-	public void setCriterias(final List<MatchCriteria> criterias) {
+	public void setCriterias(final List<MatchGroup> criterias) {
 		this.criterias = criterias;
 	}
 
