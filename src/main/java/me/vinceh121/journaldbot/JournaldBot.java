@@ -120,7 +120,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 
 			sb.append("Message: `");
 			sb.append(e.getMessage());
-			sb.append("`\n\n--------\n\n");
+			sb.append("`\n\n\\-\\-\\-\\-\\-\\-\\-\\-\n\n");
 		}
 
 		return sb.toString();
