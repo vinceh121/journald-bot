@@ -58,6 +58,7 @@ public class JournaldBot extends TelegramLongPollingBot {
 		final URL url = new URL(config.getUrl());
 		final HttpURLConnection con = (HttpURLConnection) url.openConnection();
 		con.addRequestProperty("Accept", "application/json");
+		con.addRequestProperty("Range", "entries=:-1:"); // get only the last 1 entry, with no limit so follow works
 		final InputStream in = con.getInputStream();
 		final JsonParser parse = new JsonParser(in, Charset.defaultCharset(), this.mapper);
 		parse.forEachRemaining(e -> {
