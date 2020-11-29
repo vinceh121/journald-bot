@@ -87,6 +87,8 @@ public class JournaldBot extends TelegramLongPollingBot {
 
 	private boolean matches(final MatchCriteria crit, final JournalEntry entry) {
 		final String value = String.valueOf(entry.get(crit.getField()));
+		if (value == null)
+			return false;
 		return Pattern.matches(crit.getRegex(), value);
 	}
 
