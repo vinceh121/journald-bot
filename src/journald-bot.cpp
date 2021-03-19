@@ -11,7 +11,7 @@
 #include "journald-bot.hpp"
 
 jdb::Config loadConfig() {
-	std::ifstream streamConfig("config.json");
+	std::ifstream streamConfig("/etc/journald-bot/config.json");
 	json jsonConfig;
 	streamConfig >> jsonConfig;
 	return jsonConfig.get<jdb::Config>();
@@ -94,7 +94,7 @@ int main() {
 	try {
 		config = loadConfig();
 	} catch (const std::exception &e) {
-		std::cerr << "Failed to read ./config.json: " << e.what() << std::endl;
+		std::cerr << "Failed to read /etc/journald-bot/config.json: " << e.what() << std::endl;
 		return -1;
 	}
 
