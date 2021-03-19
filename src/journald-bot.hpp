@@ -15,11 +15,12 @@ namespace jdb {
 			token,
 			username;
 		long int chatId;
+		bool verifySsl;
 		std::vector<std::vector<Criteria>> criterias;
 	};
 
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Criteria, field, regex);
 
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, url, token, username, chatId, criterias);
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, url, token, username, chatId, verifySsl, criterias);
 }; // namespace jdb
 

@@ -2,22 +2,13 @@
 // #include <ostream>
 #include <iostream>
 #include <sstream>
-#include <thread>
-#include <chrono>
-
-#include "curl_easy.h"
-#include "curl_ios.h"
-#include "curl_exception.h"
-#include "curl_header.h"
-#include "curl_receiver.h"
+#include <exception>
+#include <stdexcept>
+#include <regex>
+#include <cpr/cpr.h>
+#include <cpr/callback.h>
 
 #include "journald-bot.hpp"
-
-using curl::curl_easy;
-using curl::curl_ios;
-using curl::curl_easy_exception;
-using curl::curl_header;
-using curl::curl_receiver;
 
 jdb::Config loadConfig() {
 	std::ifstream streamConfig("config.json");
@@ -26,100 +17,119 @@ jdb::Config loadConfig() {
 	return jsonConfig.get<jdb::Config>();
 }
 
-json tgGetMe(std::string token) {
-	std::stringstream buf;
-	curl_ios<std::stringstream> writer(buf);
-	
-	curl_header headers;
-	headers.add("Content-Type: application/json");
-
-	curl_easy easy(writer);
-	easy.add<CURLOPT_HTTPHEADER>(headers.get());
-	easy.add<CURLOPT_URL>(("https://api.telegram.org/bot" + token + "/getMe").c_str());
-	easy.perform();
-	json jsonResponse = json::parse(buf.str());
+json tgGetMe(jdb::Config config) {
+	cpr::Response res = cpr::Get(
+			cpr::Url{"https://api.telegram.org/bot" + config.token + "/getMe"},
+			cpr::Header{{"Content-Type", "application/json"}},
+			cpr::VerifySsl(config.verifySsl));
+	if (res.error.code != cpr::ErrorCode::OK) {
+		throw std::runtime_error(res.error.message);
+	}
+	json jsonResponse = json::parse(res.text);
 	return jsonResponse;
 }
 
-void sendMessage(jdb::Config config, json log, jdb::Criteria crit) {
+void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group) {
 	json payload;
 	payload["chat_id"] = config.chatId;
 	payload["parse_mode"] = "MarkdownV2";
 
 	std::string msg;
-	msg += "Match\n\n";
-	msg += "Field: `";
-	msg += crit.field + "`\n";
-	msg += "Field value: `"; 
-	msg += log[crit.field].get<std::string>();
-	msg += "`\n";
-	msg += "Regex: `";
-	msg += crit.regex;
-	msg += "`\n";
-	msg += "Message: `";
-	msg += log["MESSAGE"].get<std::string>();
-	msg += "`\n";
+	for (jdb::Criteria crit : group) {
+		msg += "Match\n\n";
+		msg += "Field: `";
+		msg += crit.field + "`\n";
+		msg += "Field value: `"; 
+		msg += log[crit.field].get<std::string>();
+		msg += "`\n";
+		msg += "Regex: `";
+		msg += crit.regex;
+		msg += "`\n";
+		msg += "Message: `";
+		msg += log["MESSAGE"].get<std::string>();
+		msg += "`\n\n\\-\\-\\-\\-\\-\\-\\-\\-\n\n";
+	}
 
 	payload["text"] = msg;
 
-	std::stringstream buf;
-	curl_ios<std::stringstream> writer(buf);
-
-	curl_header headers;
-	headers.add("Content-Type: application/json");
-
-	std::string strBody = payload.dump();
-
-	curl_easy easy(writer);
-	easy.add<CURLOPT_HTTPHEADER>(headers.get());
-//	easy.add<CURLOPT_VERBOSE>(1L);
-	easy.add<CURLOPT_URL>(("https://api.telegram.org/bot" + config.token + "/sendMessage").c_str());
-	easy.add<CURLOPT_POSTFIELDS>(strBody.c_str());
-	easy.add<CURLOPT_POSTFIELDSIZE>(strBody.size());
-	easy.perform();
+	cpr::Response res = cpr::Post(
+				cpr::Url{"https://api.telegram.org/bot" + config.token + "/sendMessage"},
+				cpr::Body{payload.dump()},
+				cpr::Header{{"Content-Type", "application/json"}},
+				cpr::VerifySsl(config.verifySsl)
+			);
+	if (res.error.code != cpr::ErrorCode::OK) {
+		throw std::runtime_error(res.error.message);
+	}
 }
 
-static std::stringstream stream;
-
-void readStream() {
-	std::string line;
-	for (;;) {
-	std::chrono::milliseconds timespan(10);
-	std::this_thread::sleep_for(timespan);
-//	while (std::getline(stream, line)) {
-	if(std::getline(stream, line))
-		std::cout << "OWO: " << line << std::endl;
+bool doesCriteriaMatch(jdb::Criteria crit, json log) {
+	json value = log[crit.field];
+	if (value.is_null()) {
+		return false;
 	}
+
+	std::string str;
+	if (value.is_string()) {
+		str = value.get<std::string>();
+	} else {
+		str = value.dump();
+	}
+	return std::regex_match(str, std::regex(crit.regex));
+}
+
+bool doesCriteriaMatch(std::vector<jdb::Criteria> group, json log) {
+	for (jdb::Criteria crit : group) {
+		if (!doesCriteriaMatch(crit, log)) {
+			return false;
+		}
+	}
+	return true;
 }
 
 int main() {
 	std::cout << "journald-bot henlo" << std::endl; 
 
-	jdb::Config config = loadConfig();
-	json me = tgGetMe(config.token);
+	jdb::Config config;
+	try {
+		config = loadConfig();
+	} catch (const std::exception &e) {
+		std::cerr << "Failed to read ./config.json: " << e.what() << std::endl;
+		return -1;
+	}
+
+	json me;
+	try {
+		me = tgGetMe(config);
+	} catch (const std::exception &e) {
+		std::cerr << "Failed to getMe: " << e.what() << std::endl;
+		return -2;
+	}
 	if (!me["ok"].get<bool>()) {
 		std::cerr << "Login failed: " << me["error_code"]
 			<< ": " << me["description"] << std::endl;
-		return -1;
+		return -3;
 	}
 
 	std::cout << "Logged in as " << me["result"]["username"] << std::endl;
 
-//	std::stringstream stream;
 
-	std::thread readThread(readStream);
-
-	curl_ios<std::stringstream> writer(stream);
-
-	curl_header headers;
-	headers.add("Accept: application/json");
-//	headers.add("Range: entries=:-1:");
-
-	curl_easy easy(writer);
-	easy.add<CURLOPT_HTTPHEADER>(headers.get());
-	easy.add<CURLOPT_URL>(config.url.c_str());
-//	easy.add<CURLOPT_VERBOSE>(true);
-	easy.perform();
+	cpr::Response res = cpr::Get(
+			cpr::Url{config.url},
+			cpr::Header{{"Accept", "application/json"},
+				{"Range", "entries=:-1:"}},
+			cpr::WriteCallback(
+				[config](std::string data) -> bool {
+					json jsonLog = json::parse(data);
+					for (std::vector<jdb::Criteria> group : config.criterias) {
+						if (doesCriteriaMatch(group, jsonLog)) {
+							sendMessage(config, jsonLog, group);
+						}
+					}
+					return true;
+				}),
+			cpr::VerifySsl(config.verifySsl)
+		);
 
 	return 0;
 }
