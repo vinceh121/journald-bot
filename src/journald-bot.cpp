@@ -2,11 +2,14 @@
 // #include <ostream>
 #include <iostream>
 #include <sstream>
+#include <thread>
+#include <chrono>
 
 #include "curl_easy.h"
 #include "curl_ios.h"
 #include "curl_exception.h"
 #include "curl_header.h"
+#include "curl_receiver.h"
 
 #include "journald-bot.hpp"
 
@@ -14,6 +17,7 @@ using curl::curl_easy;
 using curl::curl_ios;
 using curl::curl_easy_exception;
 using curl::curl_header;
+using curl::curl_receiver;
 
 jdb::Config loadConfig() {
 	std::ifstream streamConfig("config.json");
@@ -75,7 +79,20 @@ void sendMessage(jdb::Config config, json log, jdb::Criteria crit) {
 	easy.perform();
 }
 
-int main(void) {
+static std::stringstream stream;
+
+void readStream() {
+	std::string line;
+	for (;;) {
+	std::chrono::milliseconds timespan(10);
+	std::this_thread::sleep_for(timespan);
+//	while (std::getline(stream, line)) {
+	if(std::getline(stream, line))
+		std::cout << "OWO: " << line << std::endl;
+	}
+}
+
+int main() {
 	std::cout << "journald-bot henlo" << std::endl; 
 
 	jdb::Config config = loadConfig();
@@ -88,10 +105,22 @@ int main(void) {
 
 	std::cout << "Logged in as " << me["result"]["username"] << std::endl;
 
-	jdb::Criteria c = {"my field owo", "my regex uwu"};
-	json log = R"({"MESSAGE":"my message owo", "my field owo": "my value ощо"})"_json;
-	sendMessage(config, log, c);
-	
+//	std::stringstream stream;
+
+	std::thread readThread(readStream);
+
+	curl_ios<std::stringstream> writer(stream);
+
+	curl_header headers;
+	headers.add("Accept: application/json");
+//	headers.add("Range: entries=:-1:");
+
+	curl_easy easy(writer);
+	easy.add<CURLOPT_HTTPHEADER>(headers.get());
+	easy.add<CURLOPT_URL>(config.url.c_str());
+//	easy.add<CURLOPT_VERBOSE>(true);
+	easy.perform();
+
 	return 0;
 }
 
