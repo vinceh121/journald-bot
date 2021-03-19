@@ -1,6 +1,3 @@
-[submodule "lib/curlcpp"]
-	path = lib/curlcpp
-	url = https://github.com/JosephP91/curlcpp
 [submodule "lib/nlohmann_json"]
 	path = lib/nlohmann_json
 	url = https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
