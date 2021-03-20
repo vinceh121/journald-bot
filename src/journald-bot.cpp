@@ -1,10 +1,9 @@
 #include <fstream>
-// #include <ostream>
 #include <iostream>
 #include <sstream>
 #include <exception>
-#include <stdexcept>
 #include <regex>
+
 #include <cpr/cpr.h>
 #include <cpr/callback.h>
 
@@ -93,7 +92,7 @@ int main() {
 	jdb::Config config;
 	try {
 		config = loadConfig();
-	} catch (const std::exception &e) {
+	} catch (const std::exception& e) {
 		std::cerr << "Failed to read /etc/journald-bot/config.json: " << e.what() << std::endl;
 		return -1;
 	}
@@ -101,7 +100,7 @@ int main() {
 	json me;
 	try {
 		me = tgGetMe(config);
-	} catch (const std::exception &e) {
+	} catch (const std::exception& e) {
 		std::cerr << "Failed to getMe: " << e.what() << std::endl;
 		return -2;
 	}
@@ -119,11 +118,18 @@ int main() {
 			cpr::Header{{"Accept", "application/json"},
 				{"Range", "entries=:-1:"}},
 			cpr::WriteCallback(
-				[config](std::string data) -> bool {
+				[config](std::string data) {
 					json jsonLog = json::parse(data);
 					for (std::vector<jdb::Criteria> group : config.criterias) {
-						if (doesCriteriaMatch(group, jsonLog)) {
-							sendMessage(config, jsonLog, group);
+						try {
+							if (doesCriteriaMatch(group, jsonLog)) {
+								sendMessage(config, jsonLog, group);
+							}
+						} catch (const std::regex_error& e) {
+							std::cerr << "Failed to parse regex in criteria group: " << e.what() << std::endl <<
+						       		"In group: " << json(group).dump(2) << std::endl;
+						} catch (const std::runtime_error& e) {
+							std::cerr << "Failed to send message: " << e.what() << std::endl;
 						}
 					}
 					return true;
@@ -131,6 +137,10 @@ int main() {
 			cpr::VerifySsl(config.verifySsl)
 		);
 
+	if (res.error.code != cpr::ErrorCode::OK) {
+		std::cerr << "Failed to connect to gateway: " << res.error.message << std::endl;
+		return -4;
+	}
 	return 0;
 }
 
