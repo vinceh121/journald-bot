@@ -1,0 +1,20 @@
+{
+	"url": "http://127.0.0.1:19531/entries?follow&boot",
+	"chatId": 12345678,
+	"token": "YOUR TOKEN HERE",
+	"verifySsl": true,
+	"criterias": [
+		[
+			{
+				"field": "_COMM",
+				"regex": "systemd-logind"
+			}
+		],
+		[
+			{
+				"field": "JOB_TYPE",
+				"regex": "(start|stop|restart)"
+			}
+		]
+	]
+}

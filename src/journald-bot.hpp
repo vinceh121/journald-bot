@@ -12,8 +12,7 @@ namespace jdb {
 
 	struct Config {
 		std::string url,
-			token,
-			username;
+			token;
 		long int chatId;
 		bool verifySsl;
 		std::vector<std::vector<Criteria>> criterias;
@@ -21,6 +20,6 @@ namespace jdb {
 
 	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Criteria, field, regex);
 
-	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, url, token, username, chatId, verifySsl, criterias);
+	NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(Config, url, token, chatId, verifySsl, criterias);
 }; // namespace jdb
 
