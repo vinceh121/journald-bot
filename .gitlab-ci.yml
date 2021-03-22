@@ -13,7 +13,7 @@ build:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
-    - apt update && apt -y install git libssl-dev g++ make curl libcurl4-gnutls-dev
+    - apt update && apt -y install git libssl-dev g++ make curl libcurl4-gnutls-dev openssh-client
     - pwd
     - curl -LO https://github.com/Kitware/CMake/releases/download/v3.20.0-rc5/cmake-3.20.0-rc5-linux-x86_64.sh
     - bash -c "yes | bash ./cmake-3.20.0-rc5-linux-x86_64.sh"
@@ -23,6 +23,13 @@ build:
     - ../cmake-3.20.0-rc5-linux-x86_64/bin/cmake .. -DCMAKE_BUILD_TYPE=Release
     - make
     - ../cmake-3.20.0-rc5-linux-x86_64/bin/cpack
+    - eval $(ssh-agent -s)
+    - echo "$DEPLOY_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - scp -r build/*.deb $DEPLOY_AUTH:$DEPLOY_PATH
   artifacts:
     paths:
       - build/*.deb
