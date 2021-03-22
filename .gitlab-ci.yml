@@ -17,7 +17,7 @@ build:
     - apt update && apt -y install libssl-dev g++ make curl
     - pwd
     - curl -LO https://github.com/Kitware/CMake/releases/download/v3.20.0-rc5/cmake-3.20.0-rc5-linux-x86_64.sh
-    - yes | bash ./cmake-3.20.0-rc5-linux-x86_64.sh
+    - bash -c "yes | bash ./cmake-3.20.0-rc5-linux-x86_64.sh"
   script:
     - mkdir build
     - cd build
