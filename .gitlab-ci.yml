@@ -7,7 +7,7 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
 
-image: debian:bullseye
+image: debian:buster
 
 build:
   stage: build
