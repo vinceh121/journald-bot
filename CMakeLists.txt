@@ -20,3 +20,7 @@ target_link_libraries(journald-bot PRIVATE nlohmann_json::nlohmann_json cpr::cpr
 
 install(TARGETS journald-bot RUNTIME)
 
+SET(CPACK_GENERATOR "DEB")
+SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "vinceh121")
+INCLUDE(CPack)
+
