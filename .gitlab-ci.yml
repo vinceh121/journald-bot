@@ -26,3 +26,6 @@ build:
   artifacts:
     paths:
       - build/main
+      - build/libcpr.so.1.6
+      - build/libcurl-d.so
+      - build/libz.so.1.2.11.zlib-ng
