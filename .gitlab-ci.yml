@@ -29,7 +29,7 @@ build:
     - chmod 700 ~/.ssh
     - ssh-keyscan $DEPLOY_HOST >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
-    - scp -r build/*.deb $DEPLOY_AUTH:$DEPLOY_PATH
+    - scp -r *.deb $DEPLOY_AUTH:$DEPLOY_PATH
   artifacts:
     paths:
       - build/*.deb
