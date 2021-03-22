@@ -25,4 +25,4 @@ build:
     - ../cmake-3.20.0-rc5-linux-x86_64/bin/cpack
   artifacts:
     paths:
-      - build/artifacts
+      - build/*.deb
