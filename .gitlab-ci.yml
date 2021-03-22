@@ -6,23 +6,22 @@
 variables:
   GIT_SUBMODULE_STRATEGY: recursive
 
-
-image: debian:bullseye
+image: debian:buster
 
 build:
   stage: build
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script:
-    - apt update && apt -y install git libssl-dev g++ make curl
+    - apt update && apt -y install git libssl-dev g++ make curl libcurl4-gnutls-dev
     - pwd
     - curl -LO https://github.com/Kitware/CMake/releases/download/v3.20.0-rc5/cmake-3.20.0-rc5-linux-x86_64.sh
     - bash -c "yes | bash ./cmake-3.20.0-rc5-linux-x86_64.sh"
   script:
     - mkdir build
     - cd build
-    - ../cmake-3.20.0-rc5-linux-x86_64/bin/cmake ..
-    - make
+    - ../cmake-3.20.0-rc5-linux-x86_64/bin/cmake .. -DCMAKE_BUILD_TYPE=Release
+    - make DESTDIR=./artifacts install
   artifacts:
     paths:
-      - build
+      - build/artifacts
