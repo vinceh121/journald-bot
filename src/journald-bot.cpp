@@ -38,9 +38,12 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 		msg += "Match\n\n";
 		msg += "Field: `";
 		msg += crit.field + "`\n";
-		msg += "Field value: `"; 
-		msg += log[crit.field].get<std::string>();
-		msg += "`\n";
+		// if we're checking against MESSAGE, prevent duplicate field value
+		if (crit.field != "MESSAGE") {
+			msg += "Field value: `"; 
+			msg += log[crit.field].get<std::string>();
+			msg += "`\n";
+		}
 		msg += "Regex: `";
 		msg += crit.regex;
 		msg += "`\n";
