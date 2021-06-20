@@ -122,7 +122,15 @@ int main() {
 				{"Range", "entries=:-1:"}},
 			cpr::WriteCallback(
 				[config](std::string data) {
-					json jsonLog = json::parse(data);
+					json jsonLog;
+
+					try {
+						jsonLog = json::parse(data);
+					} catch (const json::parse_error& e) {
+						std::cerr << "Failed to parse JSON entry: " << e.what() << std::endl;
+						return true;
+					}
+
 					for (std::vector<jdb::Criteria> group : config.criterias) {
 						try {
 							if (doesCriteriaMatch(group, jsonLog)) {
