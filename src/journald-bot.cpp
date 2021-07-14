@@ -129,6 +129,9 @@ int main() {
 					} catch (const json::parse_error& e) {
 						std::cerr << "Failed to parse JSON entry: " << e.what() << std::endl;
 						return true;
+					} catch (...) {
+						std::cerr << "Unexpected parse exception of entry: \"" << data << "\"" << std::endl;
+						return true;
 					}
 
 					for (std::vector<jdb::Criteria> group : config.criterias) {
