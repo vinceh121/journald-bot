@@ -121,7 +121,7 @@ int main() {
 			cpr::Header{{"Accept", "application/json"},
 				{"Range", "entries=:-1:"}},
 			cpr::WriteCallback(
-				[config](std::string data) {
+				[config](std::string data, intptr_t userdata) {
 					json jsonLog;
 
 					try {
