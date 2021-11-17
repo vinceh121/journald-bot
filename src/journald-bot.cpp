@@ -34,10 +34,14 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 	payload["parse_mode"] = "MarkdownV2";
 
 	std::string msg;
+	msg += "**`";
+	msg += log["MESSAGE"].get<std::string>();
+	msg += "`**\n";
 	for (jdb::Criteria crit : group) {
 		msg += "Match\n\n";
 		msg += "Field: `";
-		msg += crit.field + "`\n";
+		msg += crit.field;
+		msg += "`\n";
 		// if we're checking against MESSAGE, prevent duplicate field value
 		if (crit.field.compare("MESSAGE") != 0) {
 			msg += "Field value: `"; 
@@ -47,9 +51,8 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 		msg += "Regex: `";
 		msg += crit.regex;
 		msg += "`\n";
-		msg += "Message: `";
-		msg += log["MESSAGE"].get<std::string>();
-		msg += "`\n\n\\-\\-\\-\\-\\-\\-\\-\\-\n\n";
+		// msg += "Message: `";
+		// msg += log["MESSAGE"].get<std::string>();
 	}
 
 	payload["text"] = msg;
@@ -60,7 +63,7 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 				cpr::Header{{"Content-Type", "application/json"}},
 				cpr::VerifySsl(config.verifySsl)
 			);
-	if (res.error.code != cpr::ErrorCode::OK) {
+	if (res.status_code != 200) {
 		throw std::runtime_error(res.error.message);
 	}
 }
