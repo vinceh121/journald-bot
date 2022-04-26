@@ -34,11 +34,10 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 	payload["parse_mode"] = "MarkdownV2";
 
 	std::string msg;
-	msg += "**`";
+	msg += "*`";
 	msg += log["MESSAGE"].get<std::string>();
-	msg += "`**\n";
+	msg += "`*\n";
 	for (jdb::Criteria crit : group) {
-		msg += "Match\n\n";
 		msg += "Field: `";
 		msg += crit.field;
 		msg += "`\n";
@@ -48,9 +47,12 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 			msg += log[crit.field].get<std::string>();
 			msg += "`\n";
 		}
+		if (crit.inverted) {
+			msg += "\\!";
+		}
 		msg += "Regex: `";
 		msg += crit.regex;
-		msg += "`\n";
+		msg += "`\n\n";
 		// msg += "Message: `";
 		// msg += log["MESSAGE"].get<std::string>();
 	}
@@ -80,7 +82,12 @@ bool doesCriteriaMatch(jdb::Criteria crit, json log) {
 	} else {
 		str = value.dump();
 	}
-	return std::regex_match(str, std::regex(crit.regex));
+	bool match = std::regex_match(str, std::regex(crit.regex));
+	if (crit.inverted) {
+		return !match;
+	} else {
+		return match;
+	}
 }
 
 bool doesCriteriaMatch(std::vector<jdb::Criteria> group, json log) {
