@@ -1,7 +1,8 @@
 {
-	"url": "http://127.0.0.1:19531/entries?follow&boot",
-	"chatId": 12345678,
-	"token": "YOUR TOKEN HERE",
+	"gatewayUrl": "http://127.0.0.1:19531/entries?follow&boot",
+	"ntfyUrl": "https://ntfy.sh/",
+	"ntfyTopic": "mytopic",
+	"ntfyToken": "tk_AgQdq7mVBoFD37zQVN29RhuMzNIz2",
 	"verifySsl": true,
 	"criterias": [
 		[

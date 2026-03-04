@@ -1,37 +1,34 @@
+#include <curlpp/Option.hpp>
 #include <fstream>
 #include <iostream>
-#include <sstream>
 #include <exception>
+#include <ostream>
 #include <regex>
+#include <sstream>
+#include <string>
+#include <chrono>
 
-#include <cpr/cpr.h>
-#include <cpr/callback.h>
+#include <nlohmann/json.hpp>
+#include <curlpp/cURLpp.hpp>
+#include <curlpp/Easy.hpp>
+#include <curlpp/Options.hpp>
 
 #include "journald-bot.hpp"
 
+#define CONFIG_PATH "/etc/journald-bot/config.json"
+
 jdb::Config loadConfig() {
-	std::ifstream streamConfig("/etc/journald-bot/config.json");
+	std::ifstream streamConfig(CONFIG_PATH);
 	json jsonConfig;
 	streamConfig >> jsonConfig;
 	return jsonConfig.get<jdb::Config>();
 }
 
-json tgGetMe(jdb::Config config) {
-	cpr::Response res = cpr::Get(
-			cpr::Url{"https://api.telegram.org/bot" + config.token + "/getMe"},
-			cpr::Header{{"Content-Type", "application/json"}},
-			cpr::VerifySsl(config.verifySsl));
-	if (res.error.code != cpr::ErrorCode::OK) {
-		throw std::runtime_error(res.error.message);
-	}
-	json jsonResponse = json::parse(res.text);
-	return jsonResponse;
-}
-
 void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group) {
 	json payload;
-	payload["chat_id"] = config.chatId;
-	payload["parse_mode"] = "MarkdownV2";
+	payload["topic"] = config.ntfyTopic;
+	payload["title"] = "journald-bot";
+	payload["markdown"] = true;
 
 	std::string msg;
 	msg += "*`";
@@ -41,33 +38,40 @@ void sendMessage(jdb::Config config, json log, std::vector<jdb::Criteria> group)
 		msg += "Field: `";
 		msg += crit.field;
 		msg += "`\n";
-		// if we're checking against MESSAGE, prevent duplicate field value
-		if (crit.field.compare("MESSAGE") != 0) {
-			msg += "Field value: `"; 
-			msg += log[crit.field].get<std::string>();
-			msg += "`\n";
-		}
+
+		msg += "Field value: `"; 
+		msg += log[crit.field].get<std::string>();
+		msg += "`\n";
+
 		if (crit.inverted) {
 			msg += "\\!";
 		}
 		msg += "Regex: `";
 		msg += crit.regex;
 		msg += "`\n\n";
-		// msg += "Message: `";
-		// msg += log["MESSAGE"].get<std::string>();
 	}
 
-	payload["text"] = msg;
+	payload["message"] = msg;
 
-	cpr::Response res = cpr::Post(
-				cpr::Url{"https://api.telegram.org/bot" + config.token + "/sendMessage"},
-				cpr::Body{payload.dump()},
-				cpr::Header{{"Content-Type", "application/json"}},
-				cpr::VerifySsl(config.verifySsl)
-			);
-	if (res.status_code != 200) {
-		throw std::runtime_error(res.error.message);
+	std::stringstream buf(payload.dump());
+
+	std::list<std::string> headers{};
+
+	if (!config.ntfyToken.empty()) {
+		headers.push_back("Authorization: Bearer " + config.ntfyToken);
 	}
+
+	curlpp::Easy request;
+	request.setOpt(curlpp::Options::Url(config.ntfyUrl));
+	request.setOpt(curlpp::Options::ReadStream(&buf));
+	request.setOpt(curlpp::Options::InfileSize(buf.str().size()));
+	request.setOpt(curlpp::Options::Upload(true));
+	request.setOpt(curlpp::Options::HttpHeader(headers));
+	request.setOpt(curlpp::Options::WriteFunction([](char* ptr, size_t size, size_t nmemb) {
+		return size * nmemb;
+	}));
+
+	request.perform();
 }
 
 bool doesCriteriaMatch(jdb::Criteria crit, json log) {
@@ -99,6 +103,33 @@ bool doesCriteriaMatch(std::vector<jdb::Criteria> group, json log) {
 	return true;
 }
 
+void handleLine(jdb::Config& config, std::string line) {
+	json jsonLog;
+
+	try {
+		jsonLog = json::parse(line);
+	} catch (const json::parse_error& e) {
+		std::cerr << "Failed to parse JSON entry: " << e.what() << std::endl;
+		return;
+	} catch (...) {
+		std::cerr << "Unexpected parse exception of entry: \"" << line << "\"" << std::endl;
+		return;
+	}
+
+	for (std::vector<jdb::Criteria> group : config.criterias) {
+		try {
+			if (doesCriteriaMatch(group, jsonLog)) {
+				sendMessage(config, jsonLog, group);
+			}
+		} catch (const std::regex_error& e) {
+			std::cerr << "Failed to parse regex in criteria group: " << e.what() << std::endl <<
+		       		"In group: " << json(group).dump(2) << std::endl;
+		} catch (const std::runtime_error& e) {
+			std::cerr << "Failed to send message: " << e.what() << std::endl;
+		}
+	}
+}
+
 int main() {
 	std::cout << "journald-bot henlo" << std::endl; 
 
@@ -106,65 +137,28 @@ int main() {
 	try {
 		config = loadConfig();
 	} catch (const std::exception& e) {
-		std::cerr << "Failed to read /etc/journald-bot/config.json: " << e.what() << std::endl;
+		std::cerr << "Failed to read " << CONFIG_PATH << ": " << e.what() << std::endl;
 		return -1;
 	}
 
-	json me;
-	try {
-		me = tgGetMe(config);
-	} catch (const std::exception& e) {
-		std::cerr << "Failed to getMe: " << e.what() << std::endl;
-		return -2;
-	}
-	if (!me["ok"].get<bool>()) {
-		std::cerr << "Login failed: " << me["error_code"]
-			<< ": " << me["description"] << std::endl;
-		return -3;
-	}
+	auto now = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::utc_clock::now().time_since_epoch()).count();
 
-	std::cout << "Logged in as " << me["result"]["username"] << std::endl;
+	curlpp::Easy request;
+	request.setOpt(curlpp::options::Url(config.gatewayUrl));
+	request.setOpt(curlpp::options::HttpHeader({
+		"Accept: application/json",
+		"Range: realtime=" + std::to_string(now) + ":",
+	}));
+	request.setOpt(curlpp::options::WriteFunction([&config](char* ptr, size_t size, size_t nmemb) {
+		size_t realsize = size * nmemb;
 
+		handleLine(config, std::string(ptr, realsize));
 
-	cpr::Response res = cpr::Get(
-			cpr::Url{config.url},
-			cpr::Header{{"Accept", "application/json"},
-				{"Range", "entries=:-1:"}},
-			cpr::WriteCallback(
-				[config](std::string data) {
-					json jsonLog;
+		return realsize;
+	}));
 
-					try {
-						jsonLog = json::parse(data);
-					} catch (const json::parse_error& e) {
-						std::cerr << "Failed to parse JSON entry: " << e.what() << std::endl;
-						return true;
-					} catch (...) {
-						std::cerr << "Unexpected parse exception of entry: \"" << data << "\"" << std::endl;
-						return true;
-					}
+	request.perform();
 
-					for (std::vector<jdb::Criteria> group : config.criterias) {
-						try {
-							if (doesCriteriaMatch(group, jsonLog)) {
-								sendMessage(config, jsonLog, group);
-							}
-						} catch (const std::regex_error& e) {
-							std::cerr << "Failed to parse regex in criteria group: " << e.what() << std::endl <<
-						       		"In group: " << json(group).dump(2) << std::endl;
-						} catch (const std::runtime_error& e) {
-							std::cerr << "Failed to send message: " << e.what() << std::endl;
-						}
-					}
-					return true;
-				}),
-			cpr::VerifySsl(config.verifySsl)
-		);
-
-	if (res.error.code != cpr::ErrorCode::OK) {
-		std::cerr << "Failed to connect to gateway: " << res.error.message << std::endl;
-		return -4;
-	}
 	return 0;
 }
 
