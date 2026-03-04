@@ -1,4 +1,3 @@
-#include <curlpp/Option.hpp>
 #include <fstream>
 #include <iostream>
 #include <exception>
