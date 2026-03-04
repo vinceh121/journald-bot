@@ -2,7 +2,7 @@ include(FetchContent)
 
 cmake_minimum_required(VERSION 3.31)
 
-project(journald-bot)
+project(journald-bot VERSION 2.0.0)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
 add_definitions("-std=c++20")
@@ -28,5 +28,5 @@ install(TARGETS journald-bot RUNTIME)
 
 SET(CPACK_GENERATOR "DEB")
 SET(CPACK_DEBIAN_PACKAGE_MAINTAINER "vinceh121")
+SET(CPACK_DEBIAN_PACKAGE_DEPENDS "libcurlpp0t64 (>=0.8.1-6)")
 INCLUDE(CPack)
-

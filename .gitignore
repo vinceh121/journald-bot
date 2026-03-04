@@ -1,4 +1,5 @@
 /build/
+/dockerbuild/
 *.swp
 
 config.json
